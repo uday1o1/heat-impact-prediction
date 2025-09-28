@@ -1,13 +1,3 @@
-#!/usr/bin/env python3
-"""
-Train a CNN–LSTM model for Heat Impact Prediction on the synthetic dataset.
-
-- Loads data from data/heat_synth.npz (run scripts/build_dataset.py first)
-- Builds a regularized CNN–LSTM (with dropout + L2)
-- Uses mild label smoothing to improve generalization on noisy synthetic labels
-- Saves the best checkpoint by validation AUROC to data/best_cnn_lstm.keras
-"""
-
 from pathlib import Path
 import os
 import numpy as np
@@ -21,12 +11,10 @@ CKPT = Path("data/best_cnn_lstm.keras")
 
 EPOCHS = 20
 BATCH_SIZE = 32
-LABEL_SMOOTH_EPS = 0.05  # pull targets slightly away from 0/1
+LABEL_SMOOTH_EPS = 0.05
 
 def setup_tf():
-    # Optional: make TF quieter
     os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
-    # Optional: GPU memory growth
     gpus = tf.config.list_physical_devices("GPU")
     for gpu in gpus:
         try:
@@ -35,9 +23,6 @@ def setup_tf():
             pass
 
 def smooth_labels(y, eps=LABEL_SMOOTH_EPS):
-    """
-    y: (N,) or (N,1) binary labels in {0,1} -> smoothed to (eps/2, 1 - eps/2)
-    """
     y = y.astype("float32")
     return y * (1.0 - eps) + 0.5 * eps
 
@@ -45,9 +30,6 @@ def main():
     setup_tf()
     assert DATA.exists(), f"Missing {DATA}. Run: python scripts/build_dataset.py"
 
-    # ----------------------------
-    # Load dataset
-    # ----------------------------
     D = load_npz(DATA)
     X_tr, y_tr = D["X_tr"], D["y_tr"]
     X_va, y_va = D["X_va"], D["y_va"]
@@ -55,24 +37,15 @@ def main():
     print("[load] X_tr", X_tr.shape, "y_tr", y_tr.shape)
     print("[load] X_va", X_va.shape, "y_va", y_va.shape)
 
-    # ----------------------------
-    # Build model (regularized CNN–LSTM)
-    # ----------------------------
     model = build_cnn_lstm(
-        input_shape=X_tr.shape[1:],  # (T,H,W,C)
-        n_classes=1,                 # binary
+        input_shape=X_tr.shape[1:],
+        n_classes=1,
     )
     model.summary()
 
-    # ----------------------------
-    # Label smoothing (optional but helpful)
-    # ----------------------------
     y_tr_s = smooth_labels(y_tr)
     y_va_s = smooth_labels(y_va)
 
-    # ----------------------------
-    # Callbacks
-    # ----------------------------
     ckpt_cb = tf.keras.callbacks.ModelCheckpoint(
         filepath=str(CKPT),
         monitor="val_auroc",
@@ -96,9 +69,6 @@ def main():
         min_lr=1e-5,
     )
 
-    # ----------------------------
-    # Train
-    # ----------------------------
     history = model.fit(
         X_tr, y_tr_s,
         validation_data=(X_va, y_va_s),

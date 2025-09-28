@@ -2,7 +2,6 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 def normalize_channels(X, eps=1e-8):
-    # X: (N, T, H, W, C)
     mean = X.mean(axis=(0,1,2,3), keepdims=True)
     std  = X.std(axis=(0,1,2,3), keepdims=True)
     return (X - mean) / (std + eps), mean, std

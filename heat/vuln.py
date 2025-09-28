@@ -1,12 +1,6 @@
 import numpy as np
 
 def compute_vulnerability(hazard_prob, exposure, sensitivity, clip=True):
-    """
-    hazard_prob: (H, W) or (N,H,W) predicted probabilities in [0,1]
-    exposure:    same shape, e.g., normalized population density
-    sensitivity: same shape, e.g., % elderly or low-income normalized
-    Returns: vulnerability index in [0,1] (if clip=True)
-    """
     v = hazard_prob * exposure * sensitivity
     if clip:
         v = np.clip(v, 0, 1)
