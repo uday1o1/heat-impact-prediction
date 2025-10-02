@@ -1,0 +1,50 @@
+data:
+  lat: 28.6
+  lon: 77.2
+  start: "2013-01-01"
+  end:   "2025-09-30"
+  parameters: ["T2M_MAX","T2M_MIN","RH2M","WS2M","ALLSKY_SFC_SW_DWN"]  # solar rad helps
+  raw_path: "data/raw/delhi_power.json"
+  interim_csv: "data/interim/delhi_daily.csv"
+  processed_train: "data/processed/train.parquet"
+  processed_valid: "data/processed/valid.parquet"
+  processed_test:  "data/processed/test.parquet"
+  scaler_path: "data/processed/standard_scaler.pkl"
+
+labeling:
+  # Practical heatwave label for Delhi:
+  # positive if Tmax >= 40°C  OR Tmax >= 95th percentile seasonal (rolling 31d)
+  tmax_abs_c: 40.0
+  use_percentile: true
+  percentile_window_days: 31
+  percentile_threshold: 0.95
+
+features:
+  target_horizon_days: 1      # (unused now)
+  target_horizons: 7          # predict next 7 days
+  lookback_days: 14
+  lags_days: [1,2,3,7]
+  rolling_means_days: [3,7]
+  include_doystd: true         # day-of-year std anomaly
+
+split:
+  valid_start: "2022-01-01"
+  test_start:  "2024-01-01"
+
+train:
+  seed: 42
+  batch_size: 64
+  epochs: 100
+  lr: 1e-3
+  weight_decay: 1e-5
+  class_weight_positive: 2.0
+  pos_weight_per_horizon: [2,2,2,2,2,2,2]
+  early_stopping_patience: 6
+  early_stopping_min_delta: 0.0005
+  monitor: "val_loss"
+  ckpt_path: "models/best.pt"
+
+model:
+  hidden_size: 64
+  num_layers: 2
+  dropout: 0.2
